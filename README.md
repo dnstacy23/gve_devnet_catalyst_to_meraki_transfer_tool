@@ -26,12 +26,16 @@ In order to use the Meraki API, you need to enable the API for your organization
 
 ## Installation/Configuration
 1. Clone this repository with `git clone [repository name]`
-2. To complete this step, you will need the API key retrieved in the Prerequisites section. In addition, the code will be connecting to the Catalyst switch via SSH, so you will need to ensure that SSH is configured on the Catalyst switch and know the credentials for the switch. You will also need the serial number of the Meraki switches that you will be configuring from the Catalyst switch. If you are only configuring one switch, then you will only provide one serial number, but if you have a stack or multiple switches that you wish to replace the Catalyst switch with, then you will need to provide all the serial numbers in the appropriate order. Lastly, you'll need the default gateway from the Catalyst configuration. The default gateway for the MS switch must exist on exactly one imported SVI or be configured on  the MS already. Add Catalyst IP address, Catalyst username, Catalyst password, Catalyst ssh secret, Meraki API key, Meraki switch serial(s), and the default gateway ip address to the environment variables
+2. To complete this step, you will need the API key retrieved in the Prerequisites section. In addition, the code can connect to the Catalyst switch via SSH, or you will need provide the name of the file that contains the switch configuration. To connect via SSH, set CONNECT_SSH to "true". Otherwise, set CONNECT_SSH to "false". If you choose to use the SSH capability, ensure that SSH is configured on the Catalyst switch and know the credentials for the switch. You will also need the serial number of the Meraki switches that you will be configuring from the Catalyst switch. If you are only configuring one switch, then you will only provide one serial number, but if you have a stack or multiple switches that you wish to replace the Catalyst switch with, then you will need to provide all the serial numbers separated by commas in the appropriate order. Lastly, you'll need the default gateway from the Catalyst configuration. The default gateway for the MS switch must exist on exactly one imported SVI or be configured on  the MS already.
 ```python
+CONNECT_SSH = "true"
+
 IP = "ip address of Catalyst switch"
 USER = "username to ssh to Catalyst switch"
 PASSWORD = "password to ssh to Catalyst switch"
 SECRET = "secret to ssh to Catalyst switch"
+
+TEXT_FILE = "name of file that contains config"
 
 API_KEY = "API key for Meraki"
 MS_SERIAL = ["serial num of Meraki switch"]

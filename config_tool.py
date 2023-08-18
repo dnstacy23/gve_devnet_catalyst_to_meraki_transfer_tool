@@ -354,20 +354,28 @@ def main(argv):
 
     CONSOLE.print(Panel.fit(f"Cisco Catalyst to Meraki MS Mirgation"))
 
+    # get variable to determine if the script needs to ssh to the switch
+    connect_ssh = os.getenv("CONNECT_SSH")
+
     # connect to the Catalyst switch, returns the show run output
-    CONSOLE.print(Panel.fit(f"Get Catalyst Configuration (SSH)", title="Step 1"))
-    config = get_config()
+    if connect_ssh.lower() == "true":
+        CONSOLE.print(Panel.fit(f"Get Catalyst Configuration (SSH)", title="Step 1"))
+        config = get_config()
 
-    # If config is None, the ssh attempt failed
-    if config is None:
-        print("There was an issue getting the switch configuration. Check the credentials.")
+        # If config is None, the ssh attempt failed
+        if config is None:
+            print("There was an issue getting the switch configuration. Check the credentials.")
 
-        return
+            return
 
-    # write results to temp output file to be parsed
-    temp_file = "temp.txt"
-    with open(temp_file, 'w') as f:
-        f.write(config)
+        # write results to temp output file to be parsed
+        config_file = "temp.txt"
+        with open(config_file, 'w') as f:
+            f.write(config)
+    else:
+        CONSOLE.print(Panel.fit(f"Get Catalyst Configuration from file", title="Step 1"))
+        config_file = os.getenv("TEXT_FILE")
+        CONSOLE.print(f"Config file found in [green]{config_file}[/]")
 
     # get API key from env file
     api_key = os.getenv("API_KEY")
@@ -378,19 +386,20 @@ def main(argv):
 
     # parse out the svi data from the show run configuration
     CONSOLE.print(Panel.fit(f"Parse SVIs from Cataylst config", title="Step 2"))
-    svi_data = parse_svi_data(temp_file)
+    svi_data = parse_svi_data(config_file)
     # parse out the interfaces that are shut from the show run configuration
     CONSOLE.print(Panel.fit(f"Parse shut interfaces from Catalyst config", title="Step 3"))
-    shut_interfaces = parse_shut_intf(temp_file)
+    shut_interfaces = parse_shut_intf(config_file)
     # parse out the interface configurations from the show run configuration
     CONSOLE.print(Panel.fit(f"Parse all interface configurations from Catalyst config", title="Step 4"))
-    interfaces = parse_intf_config(temp_file, len(serials))
+    interfaces = parse_intf_config(config_file, len(serials))
 
     CONSOLE.print(Panel.fit(f"Configure the Meraki switch with the parsed Catalyst interfaces", title="Step 5"))
     configure_meraki(api_key, default_gateway, serials, svi_data, shut_interfaces, interfaces)
 
-    # delete temp file
-    # os.remove("temp.txt")
+    if connect_ssh.lower() == "true":
+        # delete temp file
+        os.remove("temp.txt")
 
     return
 
