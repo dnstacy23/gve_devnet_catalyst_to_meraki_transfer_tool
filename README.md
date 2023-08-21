@@ -1,11 +1,11 @@
 # GVE DevNet Catalyst to Meraki Switch Transfer Tool
-This repository contains a Python script that assists in applying a Catalyst switch configuration to a Meraki switch. Specifically, this script will copy the SVI and downlink interface configurations to the Meraki switch. The SVI configuration that gets copied over is the VLAN description/name, interface ip address, and subnet. The interface configuration that gets copied over is the port description/name, data vlan, voice vlan, shutdown status, access/trunk mode, native vlan, and vlans allowed on trunk port. This code is built from the [Catalyst to Meraki Migration Tool](https://github.com/gve-sw/gve_devnet_catalyst_to_meraki_migration) and [Catalyst to Meraki SVI Migration](https://github.com/gve-sw/gve_devnet_meraki_svi_migration).
+This repository contains a Python script that assists in applying a Catalyst switch configuration to a Meraki switch. Specifically, this script will copy the SVI and interface configurations to the Meraki switch. The SVI configuration that gets copied over is the VLAN description/name, interface ip address, and subnet. The interface configuration that gets copied over is the port description/name, data vlan, voice vlan, shutdown status, access/trunk mode, native vlan, and vlans allowed on trunk port. This code is built from the [Catalyst to Meraki Migration Tool](https://github.com/gve-sw/gve_devnet_catalyst_to_meraki_migration) and [Catalyst to Meraki SVI Migration](https://github.com/gve-sw/gve_devnet_meraki_svi_migration). This code does assume if switches are stacked, then that they have the same number of interfaces.
 
 ## Contacts
 * Danielle Stacy
 
 ## Solution Components
-* Python 3.8
+* Python 3.11
 * Netmiko
 * Catalyst
 * Meraki
@@ -62,10 +62,12 @@ The script will find the shut interfaces on the Catalyst switch
 The script will also parse the downlink interface configurations on the Catalyst switch
 ![/IMAGES/step4.png](/IMAGES/step4.png)
 
-Last, the script will configure the Meraki switches with the configurations parsed from the Catalyst switch
+Then, the script will parse the uplink interface configurations on the Catalyst switch
 ![/IMAGES/step5.png](/IMAGES/step5.png)
 
-Then the script will 
+Last, the script will configure the Meraki switches with the configurations parsed from the Catalyst switch
+![/IMAGES/step6.png](/IMAGES/step5.png)
+
 ![/IMAGES/0image.png](/IMAGES/0image.png)
 
 ### LICENSE

@@ -144,12 +144,12 @@ def parse_shut_intf(file_path):
 
     return shut_interfaces
 
-def parse_intf_config(file_path, num_switches):
+def parse_downlink_intf(file_path, num_switches):
     """
-    Parse through Catalust show run output to find the interface configurations
+    Parse through Catalyst show run output to find the interface configurations
     :param file_path: File path to temporary file containing show run output
     :param num_switches: Number of Meraki switches that will be configured
-    :return: Dictionary of parsed interfaces
+    :return: Dictionary of parsed downlink interfaces
     """
     CONSOLE.print(f"Parsing the interface configurations")
 
@@ -168,7 +168,7 @@ def parse_intf_config(file_path, num_switches):
     # module_counter is a variable that will keep track of the number of ports on the first switch
     module_counter = 0
     # dictionary will contain details of configuration
-    intf_configs = {}
+    downlink_configs = {}
     # iterate through interfaces and retrieve necessary configurations
     for intf_obj in interfaces:
         # find the interface name, switch module, and port number
@@ -181,7 +181,7 @@ def parse_intf_config(file_path, num_switches):
         if only_intf_name.startswith("Giga") and port_number != "":
             CONSOLE.print(f"Creating [blue] {intf_name}[/] object")
 
-            intf_configs[intf_name] = {}
+            downlink_configs[intf_name] = {}
             port_number = int(port_number)
             # if we are only configuring one Meraki switch, we need to make sure the port numbers are correct
             if num_switches == 1:
@@ -192,45 +192,131 @@ def parse_intf_config(file_path, num_switches):
                 # the interface is not in the first Catalyst switch module (it's part of a stack)
                 elif int(switch_module) > 1:
                     # adjust port number the corresponding of the corresponding Meraki interface that will be configured
-                    port_number += module_counter * (switch_module - 1)
+                    port_number += module_counter * (int(switch_module) - 1)
             # configuring more than one Meraki switch
             elif num_switches > 1:
                 # set which Meraki switch needs to be configured in the stack
                 switch_module = int(switch_module)
-                intf_configs[intf_name]["module"] = switch_module
+                downlink_configs[intf_name]["module"] = switch_module
 
             # search configuration for description, mode, data vlan, voice vlan, native vlan, and allowed vlans
-            intf_configs[intf_name]["portId"] = str(port_number)
+            downlink_configs[intf_name]["portId"] = str(port_number)
             for child in intf_obj.children:
                 desc = child.re_match_typed(description_re)
                 if desc != "":
-                    intf_configs[intf_name]["name"] = desc
+                    downlink_configs[intf_name]["name"] = desc
 
                 port_mode = child.re_match_typed(port_mode_re)
                 if port_mode != "":
-                    intf_configs[intf_name]["type"] = port_mode
+                    downlink_configs[intf_name]["type"] = port_mode
 
                 voice_vlan = child.re_match_typed(voice_vlan_re)
                 if voice_vlan != "":
-                    intf_configs[intf_name]["voiceVlan"] = voice_vlan
+                    downlink_configs[intf_name]["voiceVlan"] = voice_vlan
 
                 data_vlan = child.re_match_typed(data_vlan_re)
                 if data_vlan != "":
-                    intf_configs[intf_name]["vlan"] = data_vlan
+                    downlink_configs[intf_name]["vlan"] = data_vlan
 
                 trunk_native = child.re_match_typed(trunk_native_re)
                 if trunk_native != "":
-                    intf_configs[intf_name]["vlan"] = trunk_native
+                    downlink_configs[intf_name]["vlan"] = trunk_native
 
                 vlan_allowed = child.re_match_typed(vlan_allowed_re)
                 if vlan_allowed != "":
-                    intf_configs[intf_name]["allowedVlans"] = vlan_allowed
+                    downlink_configs[intf_name]["allowedVlans"] = vlan_allowed
 
 
-    intf_count = len(intf_configs)
+    intf_count = len(downlink_configs)
     CONSOLE.print(f"Found [blue]{intf_count} downlink interface configurations[/] to convert")
 
-    return intf_configs
+    return downlink_configs
+
+def parse_uplink_intf(file_path, num_switches, downlink_count):
+    """
+    Parse through Catalyst show run output to find the interface configurations
+    :param file_path: File path to temporary file containing show run output
+    :param num_switches: Number of Meraki switches that will be configured
+    :param downlink_count: Number of downlink interfaces found on the Catalyst switch
+    :return: Dictionary of parsed uplink configurations
+    """
+    CONSOLE.print(f"Parsing the uplink configurations")
+
+    # parse config for interfaces
+    parse = CiscoConfParse(file_path, syntax="ios")
+    interfaces = parse.find_objects("^interface")
+
+    # regex expressions for finding configurations of interfaces
+    description_re = r"description\s(.+)"
+    port_mode_re = r"\sswitchport\smode\s+(.+)"
+    voice_vlan_re = r"\sswitchport\svoice\svlan\s+(\d+)"
+    data_vlan_re = r"\sswitchport\saccess\svlan\s+(\S.*)"
+    trunk_native_re = r"\sswitchport\strunk\snative\svlan\s+(.*)"
+    vlan_allowed_re = r"\sswitchport\strunk\sallowed\svlan\s+(.*)"
+
+    # module_counter is a variable that will keep track of the number of ports on the first switch
+    module_counter = 0
+    # dictionary will contain details of configuration
+    uplink_configs = {}
+    # iterate through interfaces and retrieve necessary configurations
+    for intf_obj in interfaces:
+        # find the interface name, switch module, and port number
+        intf_name = intf_obj.re_match_typed("^interface\s+(\S.*)$")
+        only_intf_name = re.sub("\d+|\\/", "", intf_name)
+        switch_module = intf_obj.re_match_typed("^interface\s\S+?thernet+(\d)")
+        port_number = intf_obj.re_match_typed("^interface\s\S+?thernet\d.\d.(\d+)")
+        if only_intf_name.startswith("TenGiga") and port_number != "":
+            CONSOLE.print(f"Creating [blue] {intf_name}[/] object")
+
+            uplink_configs[intf_name] = {}
+            port_number = int(port_number) + int((downlink_count / num_switches))
+            # if we are only configuring one Meraki switch, we need to make sure the port numbers are correct
+            if num_switches == 1:
+                # the interface is in the first Catalyst switch module
+                if int(switch_module) == 1:
+                    # increase module_counter by 1
+                    module_counter += 1
+                # the interface is not in the first Catalyst switch module (it's part of a stack)
+                elif int(switch_module) > 1:
+                    # adjust port number the corresponding of the corresponding Meraki interface that will be configured
+                    port_number += module_counter * (int(switch_module) - 1)
+            # configuring more than one Meraki switch
+            elif num_switches > 1:
+                # set which Meraki switch needs to be configured in the stack
+                switch_module = int(switch_module)
+                uplink_configs[intf_name]["module"] = switch_module
+
+            uplink_configs[intf_name]["portId"] = str(port_number)
+            for child in intf_obj.children:
+                desc = child.re_match_typed(description_re)
+                if desc != "":
+                    uplink_configs[intf_name]["name"] = desc
+
+                port_mode = child.re_match_typed(port_mode_re)
+                if port_mode != "":
+                    uplink_configs[intf_name]["type"] = port_mode
+
+                voice_vlan = child.re_match_typed(voice_vlan_re)
+                if voice_vlan != "":
+                    uplink_configs[intf_name]["voiceVlan"] = voice_vlan
+
+                data_vlan = child.re_match_typed(data_vlan_re)
+                if data_vlan != "":
+                    uplink_configs[intf_name]["vlan"] = data_vlan
+
+                trunk_native = child.re_match_typed(trunk_native_re)
+                if trunk_native != "":
+                    uplink_configs[intf_name]["vlan"] = trunk_native
+
+                vlan_allowed = child.re_match_typed(vlan_allowed_re)
+                if vlan_allowed != "":
+                    uplink_configs[intf_name]["allowedVlans"] = vlan_allowed
+
+
+    intf_count = len(uplink_configs)
+    CONSOLE.print(f"Found [blue]{intf_count} uplink interface configurations[/] to convert")
+
+    return uplink_configs
 
 def check_default_gateway(meraki_svis):
     """
@@ -390,11 +476,18 @@ def main(argv):
     # parse out the interfaces that are shut from the show run configuration
     CONSOLE.print(Panel.fit(f"Parse shut interfaces from Catalyst config", title="Step 3"))
     shut_interfaces = parse_shut_intf(config_file)
-    # parse out the interface configurations from the show run configuration
-    CONSOLE.print(Panel.fit(f"Parse all interface configurations from Catalyst config", title="Step 4"))
-    interfaces = parse_intf_config(config_file, len(serials))
+    # parse out the downlink configurations from the show run configuration
+    CONSOLE.print(Panel.fit(f"Parse all downlink interface configurations from Catalyst config", title="Step 4"))
+    downlink_interfaces = parse_downlink_intf(config_file, len(serials))
+    # parse out the uplink configurations from the show run configurations
+    CONSOLE.print(Panel.fit(f"Parse all uplink interface configurations from Catalyst config", title="Step 5"))
+    uplink_interfaces = parse_uplink_intf(config_file, len(serials), len(downlink_interfaces))
 
-    CONSOLE.print(Panel.fit(f"Configure the Meraki switch with the parsed Catalyst interfaces", title="Step 5"))
+    # join the dictionary of downlink_interfaces and uplink_interfaces
+    interfaces = downlink_interfaces | uplink_interfaces
+
+    # configure the meraki interfaces with the parsed configurations
+    CONSOLE.print(Panel.fit(f"Configure the Meraki switch with the parsed Catalyst interfaces", title="Step 6"))
     configure_meraki(api_key, default_gateway, serials, svi_data, shut_interfaces, interfaces)
 
     if connect_ssh.lower() == "true":
