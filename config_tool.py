@@ -134,9 +134,9 @@ def parse_shut_intf(file_path):
     # parse config file for shutdown interfaces
     parse = CiscoConfParse(file_path, syntax="ios")
     shut_interfaces = []
-    for intf_obj in parse.find_objects_w_child("^interface", "^\s+shutdown"):
+    for intf_obj in parse.find_objects_w_child(r"^interface", r"^\s+shutdown"):
         # add interface name of shutdown interface to list
-        shut_interfaces.append(intf_obj.re_match_typed("^interface\s+(\S.+?)$"))
+        shut_interfaces.append(intf_obj.re_match_typed(r"^interface\s+(\S.+?)$"))
 
     shut_count = len(shut_interfaces)
 
@@ -172,10 +172,10 @@ def parse_downlink_intf(file_path, num_switches):
     # iterate through interfaces and retrieve necessary configurations
     for intf_obj in interfaces:
         # find the interface name, switch module, and port number
-        intf_name = intf_obj.re_match_typed("^interface\s+(\S.*)$")
-        only_intf_name = re.sub("\d+|\\/", "", intf_name)
-        switch_module = intf_obj.re_match_typed("^interface\s\S+?thernet+(\d)")
-        port_number = intf_obj.re_match_typed("^interface\s\S+?thernet\d.\d.(\d+)")
+        intf_name = intf_obj.re_match_typed(r"^interface\s+(\S.*)$")
+        only_intf_name = re.sub(r"\d+|\\/", "", intf_name)
+        switch_module = intf_obj.re_match_typed(r"^interface\s\S+?thernet+(\d)")
+        port_number = intf_obj.re_match_typed(r"^interface\s\S+?thernet\d.\d.(\d+)")
 
         # we only want configuration information of downlink interfaces
         if only_intf_name.startswith("Giga") and port_number != "":
@@ -261,10 +261,10 @@ def parse_uplink_intf(file_path, num_switches, downlink_count):
     # iterate through interfaces and retrieve necessary configurations
     for intf_obj in interfaces:
         # find the interface name, switch module, and port number
-        intf_name = intf_obj.re_match_typed("^interface\s+(\S.*)$")
-        only_intf_name = re.sub("\d+|\\/", "", intf_name)
-        switch_module = intf_obj.re_match_typed("^interface\s\S+?thernet+(\d)")
-        port_number = intf_obj.re_match_typed("^interface\s\S+?thernet\d.\d.(\d+)")
+        intf_name = intf_obj.re_match_typed(r"^interface\s+(\S.*)$")
+        only_intf_name = re.sub(r"\d+|\\/", "", intf_name)
+        switch_module = intf_obj.re_match_typed(r"^interface\s\S+?thernet+(\d)")
+        port_number = intf_obj.re_match_typed(r"^interface\s\S+?thernet\d.\d.(\d+)")
         if only_intf_name.startswith("TenGiga") and port_number != "":
             CONSOLE.print(f"Creating [blue] {intf_name}[/] object")
 
