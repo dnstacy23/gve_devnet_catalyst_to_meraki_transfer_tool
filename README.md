@@ -5,7 +5,7 @@ This repository contains a Python script that assists in applying a Catalyst swi
 * Danielle Stacy
 
 ## Solution Components
-* Python 3.11
+* Python 3.12
 * Netmiko
 * Catalyst
 * Meraki
